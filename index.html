@@ -7,13 +7,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Renk Paleti ve Temel Ayarlar (Koyu Tema) */
         :root {
             --bg-color: #0f0f0f;
             --surface-color: #1a1a1a;
             --text-main: #f5f5f5;
             --text-muted: #999999;
-            --accent-red: #d32f2f; /* Pamvest logosundaki kırmızı tonu */
+            --accent-red: #d32f2f;
             --accent-hover: #b71c1c;
         }
 
@@ -33,7 +32,6 @@
             line-height: 1.6;
         }
 
-        /* Minimal Header */
         header {
             padding: 2rem 1rem;
             text-align: center;
@@ -48,7 +46,6 @@
             text-transform: uppercase;
         }
 
-        /* Ana İçerik Alanı */
         main {
             flex: 1;
             display: flex;
@@ -59,7 +56,6 @@
             gap: 4rem;
         }
 
-        /* Sade Radyo Oynatıcı */
         .player-wrapper {
             text-align: center;
         }
@@ -77,6 +73,7 @@
             margin-bottom: 1.5rem;
             text-transform: uppercase;
             letter-spacing: 1px;
+            transition: all 0.3s ease;
         }
 
         .status-badge .dot {
@@ -89,6 +86,17 @@
 
         .status-badge.playing .dot {
             animation: blink 1.5s infinite;
+        }
+
+        /* Yükleniyor durumu için turuncu/sarı badge rengi */
+        .status-badge.loading {
+            background-color: rgba(243, 156, 18, 0.1);
+            color: #f39c12;
+        }
+        
+        .status-badge.loading .dot {
+            background-color: #f39c12;
+            animation: blink 1s infinite;
         }
 
         @keyframes blink {
@@ -118,13 +126,18 @@
             background-color: #ffffff;
         }
 
+        .play-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.8;
+            transform: none;
+        }
+
         .play-text {
             margin-top: 1rem;
             font-size: 1rem;
             color: var(--text-muted);
         }
 
-        /* Atatürk Sözü ve İmza */
         .quote-container {
             max-width: 600px;
             text-align: center;
@@ -141,13 +154,11 @@
 
         .signature {
             height: 55px;
-            /* Siyah olan SVG imzasını karanlık modda görünür yapmak için beyaza çeviriyoruz */
             filter: invert(1) opacity(0.8); 
             user-select: none;
             pointer-events: none;
         }
 
-        /* Footer */
         footer {
             background-color: var(--surface-color);
             padding: 3rem 1rem 2rem;
@@ -165,7 +176,7 @@
         }
 
         .footer-logos img {
-            height: 70px; /* Logoları biraz daha belirgin yaptık */
+            height: 70px;
             width: auto;
             object-fit: contain;
         }
@@ -192,7 +203,7 @@
     <main>
         <div class="player-wrapper">
             <div class="status-badge" id="status-badge">
-                <span class="dot"></span> Canlı Yayın
+                <span class="dot"></span> <span id="status-text">Yayın Bekleniyor</span>
             </div>
             
             <audio id="radio-audio" src="https://stream-radyo.pamvestozel.club/" preload="none"></audio>
@@ -227,21 +238,52 @@
         const playIcon = document.getElementById('play-icon');
         const playText = document.getElementById('play-text');
         const statusBadge = document.getElementById('status-badge');
+        const statusText = document.getElementById('status-text');
 
+        // Butona tıklandığında (Kullanıcı eylemi)
         playBtn.addEventListener('click', () => {
             if (audio.paused) {
+                // Sesi başlat komutu veriyoruz, ama henüz ses gelmeyebilir
                 audio.play();
-                playIcon.classList.remove('fa-play');
-                playIcon.classList.add('fa-pause');
-                playText.innerText = "Yayın Dinleniyor";
-                statusBadge.classList.add('playing');
-            } else {
-                audio.pause();
-                playIcon.classList.remove('fa-pause');
-                playIcon.classList.add('fa-play');
-                playText.innerText = "Yayını Başlat";
+                
+                // Yükleniyor arayüzüne geçiş
+                playIcon.className = 'fas fa-spinner fa-spin';
+                playText.innerText = "Bağlanıyor...";
+                
                 statusBadge.classList.remove('playing');
+                statusBadge.classList.add('loading');
+                statusText.innerText = "Bağlantı Kuruluyor";
+            } else {
+                // Sesi durdur
+                audio.pause();
+                
+                // Başlangıç arayüzüne geri dön
+                playIcon.className = 'fas fa-play';
+                playText.innerText = "Yayını Başlat";
+                
+                statusBadge.classList.remove('playing', 'loading');
+                statusText.innerText = "Yayın Bekleniyor";
             }
+        });
+
+        // Ses dosyası GERÇEKTEN oynamaya başladığında tetiklenir (Buffering bittiğinde)
+        audio.addEventListener('playing', () => {
+            playIcon.className = 'fas fa-pause';
+            playText.innerText = "Yayın Dinleniyor";
+            
+            statusBadge.classList.remove('loading');
+            statusBadge.classList.add('playing');
+            statusText.innerText = "Canlı Yayın";
+        });
+
+        // İnternet yavaşlar ve yayın donarsa (Buffering sırasında) tetiklenir
+        audio.addEventListener('waiting', () => {
+            playIcon.className = 'fas fa-spinner fa-spin';
+            playText.innerText = "Ara belleğe alınıyor...";
+            
+            statusBadge.classList.remove('playing');
+            statusBadge.classList.add('loading');
+            statusText.innerText = "Yükleniyor";
         });
     </script>
 </body>
