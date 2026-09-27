@@ -138,6 +138,26 @@
             color: var(--text-muted);
         }
 
+        .now-playing {
+            margin-top: 1.5rem;
+            min-height: 1.5rem;
+        }
+
+        .now-playing .now-playing-label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.3rem;
+        }
+
+        .now-playing #now-playing-text {
+            font-size: 1.15rem;
+            color: var(--text-main);
+            font-weight: 400;
+        }
+
         .quote-container {
             max-width: 600px;
             text-align: center;
@@ -212,6 +232,11 @@
                 <i class="fas fa-play" id="play-icon"></i>
             </button>
             <div class="play-text" id="play-text">Yayını Başlat</div>
+
+            <div class="now-playing" id="now-playing" hidden>
+                <span class="now-playing-label">Şu an çalıyor</span>
+                <span id="now-playing-text">—</span>
+            </div>
         </div>
 
         <div class="quote-container">
@@ -239,6 +264,31 @@
         const playText = document.getElementById('play-text');
         const statusBadge = document.getElementById('status-badge');
         const statusText = document.getElementById('status-text');
+        const nowPlayingEl = document.getElementById('now-playing');
+        const nowPlayingText = document.getElementById('now-playing-text');
+
+        // "Şu an çalıyor" bilgisini periyodik olarak çek
+        async function fetchNowPlaying() {
+            try {
+                const res = await fetch('https://stream-radyo.pamvestozel.club/status-json.xsl', { cache: 'no-store' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                const src = data && data.icestats && data.icestats.source;
+                const title = (src && src.title) || null;
+                if (title) {
+                    nowPlayingText.innerText = title;
+                    nowPlayingEl.hidden = false;
+                } else {
+                    nowPlayingText.innerText = '—';
+                    nowPlayingEl.hidden = true;
+                }
+            } catch (e) {
+                nowPlayingText.innerText = '—';
+                nowPlayingEl.hidden = true;
+            }
+        }
+        fetchNowPlaying();
+        setInterval(fetchNowPlaying, 15000);
 
         // Butona tıklandığında (Kullanıcı eylemi)
         playBtn.addEventListener('click', () => {
@@ -284,6 +334,16 @@
             statusBadge.classList.remove('playing');
             statusBadge.classList.add('loading');
             statusText.innerText = "Yükleniyor";
+        });
+
+        // Yayına ulaşılamazsa "Bağlanıyor..." da takılı kalmasın
+        audio.addEventListener('error', () => {
+            playIcon.className = 'fas fa-play';
+            playText.innerText = "Yayına ulaşılamadı";
+            
+            statusBadge.classList.remove('playing');
+            statusBadge.classList.add('loading');
+            statusText.innerText = "Yayına Ulaşılamadı";
         });
     </script>
 </body>
